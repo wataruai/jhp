@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apology Quest: 謝罪の王様</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+
+        :root {
+            --bg-color: #202028;
+            --window-bg: #0000aa; /* Classic RPG Blue */
+            --window-border: #ffffff;
+            --text-color: #ffffff;
+            --accent-color: #f1c40f;
+            --danger-color: #e74c3c;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'DotGothic16', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Game Container */
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            max-height: 800px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background-color: #000;
+        }
+
+        /* Screen Area (Visuals) */
+        #screen-area {
+            flex: 1;
+            background-color: #111;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            border-bottom: 4px solid var(--window-border);
+        }
+
+        /* Character Display */
+        .character {
+            font-size: 8rem;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
+            transition: transform 0.2s;
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        /* Status Bar */
+        #status-bar {
+            width: 90%;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2rem;
+        }
+
+        .hp-bar-container {
+            width: 200px;
+            height: 20px;
+            background-color: #333;
+            border: 2px solid white;
+            position: relative;
+        }
+
+        .hp-bar-fill {
+            height: 100%;
+            background-color: var(--accent-color);
+            width: 100%;
+            transition: width 0.3s ease, background-color 0.3s;
+        }
+
+        /* Dialogue Box */
+        #dialogue-box {
+            height: 30%;
+            background-color: var(--window-bg);
+            border: 4px solid var(--window-border);
+            border-radius: 4px;
+            margin: 10px;
+            padding: 20px;
+            position: relative;
+            box-shadow: 0 0 0 4px #000, 0 0 0 8px var(--window-border); 
+            cursor: pointer;
+        }
+
+        #speaker-name {
+            font-size: 1.2rem;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        #message-text {
+            font-size: 1.4rem;
+            line-height: 1.6;
+            white-space: pre-wrap; /* Preserve newlines */
+            min-height: 3em;
+        }
+
+        /* Blinking Cursor/Arrow */
+        #next-indicator {
+            position: absolute;
+            bottom: 15px;
+            right: 20px;
+            font-size: 1.5rem;
+            animation: blink 1s infinite;
+            display: none;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Choices Overlay */
+        #choices-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .choice-btn {
+            background-color: rgba(0, 0, 0, 0.9);
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 15px;
+            font-family: 'DotGothic16', sans-serif;
+            font-size: 1.2rem;
+            cursor: pointer;
+            text-align: left;
+            transition: background-color 0.2s;
+        }
+
+        .choice-btn:hover {
+            background-color: var(--window-bg);
+            border-color: var(--accent-color);
+        }
+
+        /* Start Screen */
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            font-size: 3rem;
+            text-shadow: 4px 4px var(--window-bg);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .start-btn {
+            margin-top: 20px;
+            padding: 10px 30px;
+            font-size: 1.5rem;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- Visuals -->
+    <div id="screen-area">
+        <div id="status-bar">
+            <span>TARGET: <span id="target-name">???</span></span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span>信頼度:</span>
+                <div class="hp-bar-container">
+                    <div id="hp-bar" class="hp-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="character-display" class="character">😐</div>
+    </div>
+
+    <!-- Dialogue Box -->
+    <div id="dialogue-box" onclick="handleDialogueClick()">
+        <div id="speaker-name"></div>
+        <div id="message-text"></div>
+        <div id="next-indicator">▼</div>
+    </div>
+
+    <!-- Choices -->
+    <div id="choices-container">
+        <!-- Buttons injected by JS -->
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <h1>Apology<br>Quest</h1>
+        <p>「何に対して」謝るのか。<br>それを見極めるRPG。</p>
+        <button class="choice-btn start-btn" onclick="startGame('romance')">シナリオ1：怒れる恋人</button>
+        <button class="choice-btn start-btn" onclick="startGame('business')">シナリオ2：激怒上司</button>
+    </div>
+
+</div>
+
+<script>
+    /**
+     * Game State & Configuration
+     */
+    const gameState = {
+        currentScenario: null,
+        currentNodeId: 'start',
+        trust: 100, // HP
+        isTyping: false,
+        fullText: '',
+        timerId: null,
+        isWaitingForInput: false
+    };
+
+    // DOM Elements
+    const els = {
+        dialogueBox: document.getElementById('dialogue-box'),
+        speakerName: document.getElementById('speaker-name'),
+        messageText: document.getElementById('message-text'),
+        nextIndicator: document.getElementById('next-indicator'),
+        choicesContainer: document.getElementById('choices-container'),
+        startScreen: document.getElementById('start-screen'),
+        hpBar: document.getElementById('hp-bar'),
+        character: document.getElementById('character-display'),
+        targetName: document.getElementById('target-name')
+    };
+
+    /**
+     * Scenarios Data
+     * structure:
+     * id: {
+     * speaker: string,
+     * text: string,
+     * emotion: emoji string,
+     * choices: [ { text: string, next: string, damage: number } ]
+     * next: string (if no choices, simple transition)
+     * }
+     */
+    const scenarios = {
+        // --- SCENARIO 1: Romance ---
+        'romance': {
+            'start': {
+                speaker: 'ナレーション',
+                text: 'あなたは約束のデートに1時間遅刻した。\n彼女は腕を組んで待っている...',
+                emotion: '😐',
+                next: 'intro'
+            },
+            'intro': {
+                speaker: '彼女',
+                text: '……今、何時だと思ってるの？',
+                emotion: '😠',
+                choices: [
+                    { text: 'ごめん！', next: 'vague_apology', damage: 20 },
+                    { text: '本当に申し訳ない。遅刻してしまって...', next: 'specific_apology', damage: 0 },
+                    { text: '電車が遅れてさ...', next: 'excuse', damage: 30 }
+                ]
+            },
+            'vague_apology': {
+                speaker: '彼女',
+                text: '「ごめん」って言えば済むと思ってない？\n何に対して謝ってるわけ？',
+                emotion: '😡',
+                choices: [
+                    { text: '怒らせたことについて...', next: 'wrong_focus', damage: 20 },
+                    { text: '待たせて時間を無駄にさせたことについて', next: 'correct_focus', damage: -10 } // Heal slightly
+                ]
+            },
+            'excuse': {
+                speaker: '彼女',
+                text: '言い訳なんて聞いてない。\n私がどれだけここで待ったか分かってる？',
+                emotion: '👿',
+                choices: [
+                    { text: '寒かったよね、配慮が足りなかった。ごめん。', next: 'empathy', damage: -10 },
+                    { text: 'でも本当に事故で...！！', next: 'gameover', damage: 100 }
+                ]
+            },
+            'specific_apology': {
+                speaker: '彼女',
+                text: '……はぁ。で、なんで遅れたの？',
+                emotion: '😒',
+                choices: [
+                    { text: '寝坊した。気が緩んでた。', next: 'honesty', damage: 0 },
+                    { text: 'ちょっと急な仕事が入って...', next: 'lie_check', damage: 10 }
+                ]
+            },
+            'wrong_focus': {
+                speaker: '彼女',
+                text: '私の機嫌をとろうとしてるだけだよね？\nもう帰る。',
+                emotion: '👋',
+                next: 'gameover'
+            },
+            'correct_focus': {
+                speaker: '彼女',
+                text: '……わかってるなら、最初からそう言ってよ。\nこの1時間、本当に不安だったんだから。',
+                emotion: '😢',
+                next: 'clear'
+            },
+            'empathy': {
+                speaker: '彼女',
+                text: '……うん、寒かった。\n次は絶対に連絡してよね。',
+                emotion: '😔',
+                next: 'clear'
+            },
+            'honesty': {
+                speaker: '彼女',
+                text: '正直でよろしい。\nお詫びに美味しいランチ、奢ってよね。',
+                emotion: '😏',
+                next: 'clear'
+            },
+            'lie_check': {
+                speaker: '彼女',
+                text: '嘘つき。さっきSNSで「二度寝最高」って呟いてたの見たわよ。',
+                emotion: '💀',
+                next: 'gameover'
+            },
+            'gameover': {
+                speaker: 'システム',
+                text: '【BAD END】\n相手の信頼はゼロになった。\n「何に対して悪いと思っているか」を伝えないと、謝罪は届かない。',
+                emotion: '☠️',
+                end: true
+            },
+            'clear': {
+                speaker: 'システム',
+                text: '【MISSION COMPLETE】\n誠意が伝わった！\n謝罪とは「事実の確認」と「相手の感情への理解」である。',
+                emotion: '🎉',
+                end: true
+            }
+        },
+
+        // --- SCENARIO 2: Business ---
+        'business': {
+            'start': {
+                speaker: 'ナレーション',
+                text: 'あなたは重要な顧客データの入ったファイルを誤って削除してしまった。\n上司に報告しなければならない...',
+                emotion: '🏢',
+                next: 'report'
+            },
+            'report': {
+                speaker: '上司',
+                text: 'おい、例のファイルどこだ？ 共有フォルダに見当たらないんだが。',
+                emotion: '🤨',
+                choices: [
+                    { text: 'すみません、ミスりました。', next: 'too_casual', damage: 30 },
+                    { text: '申し訳ありません。誤って削除してしまいました。', next: 'fact_report', damage: 0 },
+                    { text: 'PCの調子が悪くて...', next: 'excuse_boss', damage: 40 }
+                ]
+            },
+            'too_casual': {
+                speaker: '上司',
+                text: 'ミスりました、じゃないだろう！\n事の重大さがわかってるのか！？',
+                emotion: '💢',
+                choices: [
+                    { text: '以後気をつけます。', next: 'vague_future', damage: 20 },
+                    { text: '復旧可能かすぐにIT部門に確認します。', next: 'solution', damage: -10 }
+                ]
+            },
+            'excuse_boss': {
+                speaker: '上司',
+                text: '道具のせいにするな。管理責任はお前にある。\nで、どうするんだ？',
+                emotion: '😠',
+                choices: [
+                    { text: 'なんとかします。', next: 'vague_future', damage: 30 },
+                    { text: 'バックアップから直近のデータを復元します。', next: 'solution', damage: 0 }
+                ]
+            },
+            'fact_report': {
+                speaker: '上司',
+                text: '削除しただと...？\nバックアップはとってあるのか？',
+                emotion: '😰',
+                choices: [
+                    { text: 'たぶん大丈夫だと思います。', next: 'uncertainty', damage: 20 },
+                    { text: '昨晩の自動バックアップが残っていることを確認しました。', next: 'verified', damage: 0 }
+                ]
+            },
+            'vague_future': {
+                speaker: '上司',
+                text: '具体的解決策がないなら下がれ。\nお前にはもう任せられない。',
+                emotion: '👋',
+                next: 'gameover'
+            },
+            'uncertainty': {
+                speaker: '上司',
+                text: '「たぶん」で仕事をするな！\n今すぐ確認しろ！信頼できん！',
+                emotion: '😡',
+                next: 'gameover'
+            },
+            'solution': {
+                speaker: '上司',
+                text: '...わかった。最優先で復旧作業にあたれ。\n報告の早さと具体策があったから今回は許す。次は無いぞ。',
+                emotion: '😤',
+                next: 'clear'
+            },
+            'verified': {
+                speaker: '上司',
+                text: 'そうか、不幸中の幸いだ。\nすぐに復旧作業に入れ。報告ご苦労。',
+                emotion: '😌',
+                next: 'clear'
+            },
+            'gameover': {
+                speaker: 'システム',
+                text: '【BAD END】\nプロジェクトから外された。\nビジネスの謝罪では「原因」と「解決策」の提示が必須である。',
+                emotion: '📉',
+                end: true
+            },
+            'clear': {
+                speaker: 'システム',
+                text: '【MISSION COMPLETE】\n迅速な報告と解決策により信頼を維持した。\nミスは隠さず、事実と対策をセットで伝えよう。',
+                emotion: '💮',
+                end: true
+            }
+        }
+    };
+
+    /**
+     * Core Functions
+     */
+
+    function startGame(scenarioType) {
+        gameState.currentScenario = scenarios[scenarioType];
+        gameState.currentNodeId = 'start';
+        gameState.trust = 100;
+        
+        // UI Reset
+        els.startScreen.style.display = 'none';
+        updateTrustDisplay();
+        
+        // Set Target Name
+        els.targetName.innerText = scenarioType === 'romance' ? '彼女' : '上司';
+
+        playNode('start');
+    }
+
+    function playNode(nodeId) {
+        const node = gameState.currentScenario[nodeId];
+        gameState.currentNodeId = nodeId;
+
+        // Update UI
+        els.speakerName.innerText = node.speaker;
+        els.character.innerText = node.emotion;
+        
+        // Damage effect check
+        if(gameState.trust < 50) {
+            els.character.style.filter = "grayscale(100%)";
+        } else {
+            els.character.style.filter = "none";
+        }
+
+        // Start Typewriter
+        typeWriter(node.text, () => {
+            // Callback when typing finishes
+            if (node.end) {
+                setTimeout(() => {
+                    alert("タイトルに戻ります");
+                    location.reload();
+                }, 3000);
+                return;
+            }
+
+            if (node.choices) {
+                showChoices(node.choices);
+            } else if (node.next) {
+                // Show arrow to indicate click to continue
+                els.nextIndicator.style.display = 'block';
+                gameState.isWaitingForInput = true;
+            }
+        });
+    }
+
+    function typeWriter(text, onComplete) {
+        gameState.isTyping = true;
+        gameState.fullText = text;
+        gameState.isWaitingForInput = false;
+        els.nextIndicator.style.display = 'none';
+        els.choicesContainer.style.display = 'none';
+        els.messageText.innerHTML = '';
+
+        let i = 0;
+        const speed = 40; // ms per char
+
+        gameState.timerId = setInterval(() => {
+            els.messageText.innerText += text.charAt(i);
+            i++;
+            if (i > text.length - 1) {
+                finishTyping(onComplete);
+            }
+        }, speed);
+        
+        // Store callback for skip functionality
+        gameState.onTypingComplete = onComplete;
+    }
+
+    function finishTyping(callback) {
+        clearInterval(gameState.timerId);
+        els.messageText.innerText = gameState.fullText;
+        gameState.isTyping = false;
+        if (callback) callback();
+    }
+
+    function handleDialogueClick() {
+        // Case 1: Typing -> Skip to end
+        if (gameState.isTyping) {
+            finishTyping(gameState.onTypingComplete);
+            return;
+        }
+
+        // Case 2: Waiting for Next (Non-choice transition)
+        if (gameState.isWaitingForInput) {
+            const node = gameState.currentScenario[gameState.currentNodeId];
+            if (node.next) {
+                playNode(node.next);
+            }
+        }
+    }
+
+    function showChoices(choices) {
+        els.choicesContainer.innerHTML = '';
+        els.choicesContainer.style.display = 'flex';
+        
+        choices.forEach(choice => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.innerText = `▶ ${choice.text}`;
+            btn.onclick = (e) => {
+                e.stopPropagation(); // Prevent bubbling to dialogue box
+                handleChoice(choice);
+            };
+            els.choicesContainer.appendChild(btn);
+        });
+    }
+
+    function handleChoice(choice) {
+        els.choicesContainer.style.display = 'none';
+        
+        // Apply damage/heal
+        if (choice.damage) {
+            gameState.trust -= choice.damage;
+            if (gameState.trust > 100) gameState.trust = 100;
+            updateTrustDisplay();
+            
+            // Shake effect if damage taken
+            if (choice.damage > 0) {
+                els.character.classList.add('shake');
+                setTimeout(() => els.character.classList.remove('shake'), 500);
+            }
+        }
+
+        // Check Game Over by HP
+        if (gameState.trust <= 0) {
+            gameState.trust = 0;
+            updateTrustDisplay();
+            playNode('gameover');
+        } else {
+            playNode(choice.next);
+        }
+    }
+
+    function updateTrustDisplay() {
+        const bar = els.hpBar;
+        bar.style.width = `${gameState.trust}%`;
+        
+        if (gameState.trust > 60) {
+            bar.style.backgroundColor = '#f1c40f'; // Yellow/Normal
+        } else if (gameState.trust > 30) {
+            bar.style.backgroundColor = '#e67e22'; // Orange
+        } else {
+            bar.style.backgroundColor = '#e74c3c'; // Red
+        }
+    }
+
+</script>
+</body>
+</html>
